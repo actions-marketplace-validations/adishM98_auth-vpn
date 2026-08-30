@@ -22,6 +22,8 @@ type serverStatus struct {
 	Online        bool      `json:"online"`
 	ActiveClients int64     `json:"active_clients"`
 	UptimeSecs    float64   `json:"uptime_seconds"`
+	BytesIn       int64     `json:"bytes_in"`
+	BytesOut      int64     `json:"bytes_out"`
 	LastChecked   time.Time `json:"last_checked"`
 	Error         string    `json:"error,omitempty"`
 }
@@ -144,14 +146,18 @@ func (h *Hub) pollOne(ctx context.Context, s ServerEntry) {
 	}
 	defer resp.Body.Close()
 	var body struct {
-		Uptime  float64 `json:"uptime"`
-		Clients int64   `json:"clients"`
+		Uptime   float64 `json:"uptime"`
+		Clients  int64   `json:"clients"`
+		BytesIn  int64   `json:"bytes_in"`
+		BytesOut int64   `json:"bytes_out"`
 	}
 	json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&body) //nolint:errcheck
 	h.setStatus(s.Name, serverStatus{
 		Online:        resp.StatusCode == http.StatusOK,
 		ActiveClients: body.Clients,
 		UptimeSecs:    body.Uptime,
+		BytesIn:       body.BytesIn,
+		BytesOut:      body.BytesOut,
 		LastChecked:   time.Now(),
 	})
 }
@@ -220,6 +226,8 @@ type serverInfo struct {
 	Online        bool      `json:"online"`
 	ActiveClients int64     `json:"active_clients"`
 	UptimeSecs    float64   `json:"uptime_seconds"`
+	BytesIn       int64     `json:"bytes_in"`
+	BytesOut      int64     `json:"bytes_out"`
 	LastChecked   time.Time `json:"last_checked"`
 	Error         string    `json:"error,omitempty"`
 }
@@ -243,6 +251,8 @@ func (h *Hub) handleServers(w http.ResponseWriter, r *http.Request) {
 				Online:        st.Online,
 				ActiveClients: st.ActiveClients,
 				UptimeSecs:    st.UptimeSecs,
+				BytesIn:       st.BytesIn,
+				BytesOut:      st.BytesOut,
 				LastChecked:   st.LastChecked,
 				Error:         st.Error,
 			})

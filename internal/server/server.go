@@ -55,6 +55,11 @@ type Config struct {
 	APIKey          string // bearer key for /plugin/* — empty to disable
 	ForwardBindAddr string // IP to bind direct-forward listeners to; empty = 0.0.0.0 (all interfaces)
 	SSHAddr         string // address for embedded SSH server, e.g. ":2222"; empty = disabled
+
+	// UIOnly runs the HTTP API/dashboard only — no TUN, no IP forwarding, no TLS
+	// tunnel listener, no control socket, no SSH server. Lets the dashboard be
+	// reviewed locally without root or a real deployment.
+	UIOnly bool
 }
 
 func (cfg *Config) applyDefaults() {
@@ -195,6 +200,17 @@ func (s *Server) Shutdown() {
 
 // Start creates the TUN interface, then listens for client connections.
 func (s *Server) Start() error {
+	if s.cfg.UIOnly {
+		// ponytail: dev-only path, no TUN/TLS/control-socket/SSH — just the
+		// dashboard, so `server ui-dev` needs no root and no real deployment.
+		if s.cfg.MetricsAddr == "" {
+			return fmt.Errorf("ui-only mode requires an HTTP API address")
+		}
+		log.Printf("ui-dev mode: dashboard only, no TUN/TLS tunnel")
+		s.startHTTPAPI() // blocks until s.done closes it
+		return nil
+	}
+
 	if err := tunnel.EnableForwarding(); err != nil {
 		log.Printf("warning: could not enable IP forwarding: %v", err)
 	}

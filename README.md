@@ -61,12 +61,6 @@ curl -fsSL https://github.com/adishM98/auth-vpn/releases/latest/download/install
   | sudo bash
 ```
 
-**Windows** (PowerShell as Administrator):
-
-```powershell
-irm https://github.com/adishM98/auth-vpn/releases/latest/download/install.ps1 | iex
-```
-
 Then connect:
 
 ```bash
@@ -211,23 +205,6 @@ curl -fsSL https://github.com/adishM98/auth-vpn/releases/latest/download/install
 
 > **Non-interactive installs** (piped curl, CI scripts): the port prompt is automatically skipped when stdin is not a terminal. Pass `--port=<n>` explicitly, or set the `TJ_VPN_PORT` environment variable.
 
-### Windows — PowerShell installer
-
-Run PowerShell **as Administrator**:
-
-```powershell
-irm https://github.com/adishM98/auth-vpn/releases/latest/download/install.ps1 | iex
-```
-
-This downloads `auth-vpn.exe` and `wintun.dll` to `C:\Program Files\auth-vpn\` and adds that directory to the system PATH. The [Wintun](https://www.wintun.net/) kernel driver installs automatically on the first `auth-vpn connect` (requires Administrator that first time only).
-
-To pin a specific version:
-
-```powershell
-$env:VERSION = "v2.3.0"
-irm https://github.com/adishM98/auth-vpn/releases/latest/download/install.ps1 | iex
-```
-
 ### Deploy from your Mac (VM needs nothing)
 
 ```bash
@@ -349,8 +326,7 @@ go build -o auth-vpn ./cmd    # current platform
 make build-linux              # Linux amd64
 make build-mac-arm            # macOS Apple Silicon
 make build-mac-intel          # macOS Intel
-make build-windows            # Windows amd64 (.exe)
-make build-all                # all four platforms
+make build-all                # all three platforms
 ```
 
 ---
@@ -376,8 +352,7 @@ curl         http://10.8.0.1:8080/health
 | `make build-linux` | Build Linux amd64 → `dist/` |
 | `make build-mac-arm` | Build macOS arm64 → `dist/` |
 | `make build-mac-intel` | Build macOS amd64 → `dist/` |
-| `make build-windows` | Build Windows amd64 → `dist/` |
-| `make build-all` | All four platforms |
+| `make build-all` | All three platforms |
 | `make install` | Build + install on this machine (client) |
 | `make install-server` | Build + install + configure server on this machine |
 | `make deploy VM=user@host` | Build + deploy + configure server on remote VM |
@@ -387,62 +362,13 @@ curl         http://10.8.0.1:8080/health
 
 ---
 
-## Upgrading from v2.3.0 or earlier on Windows
-
-v2.4.0 switches the Windows TUN driver from OpenVPN TAP (`tap0901`) to **Wintun**. The old binary and driver need to be fully removed before installing the new one — `auth-vpn update` will not work for this particular jump.
-
-**Step 1 — disconnect and remove the old installation** (PowerShell as Administrator):
-
-```powershell
-# Disconnect if tunnel is running
-auth-vpn disconnect
-
-# Remove old binary (installed to a different location by earlier versions)
-Remove-Item "$env:LOCALAPPDATA\auth-vpn" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item "C:\auth-vpn" -Recurse -Force -ErrorAction SilentlyContinue
-# If you manually placed it somewhere else, delete that folder too
-Get-Command auth-vpn -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
-```
-
-**Step 2 — uninstall the OpenVPN TAP driver** (only needed if you installed it previously):
-
-```powershell
-# Optional — remove the old TAP driver that auth-vpn no longer needs
-pnputil /delete-driver oem*.inf /uninstall /force
-# (Find the right .inf via: pnputil /enum-drivers | Select-String "tap")
-```
-
-**Step 3 — install v2.4.0+** (PowerShell as Administrator):
-
-```powershell
-irm https://github.com/adishM98/auth-vpn/releases/latest/download/install.ps1 | iex
-```
-
-This installs `auth-vpn.exe` + `wintun.dll` to `C:\Program Files\auth-vpn\` and adds it to your PATH. Open a new PowerShell window and connect as usual — the Wintun kernel driver installs itself automatically on the first connect (requires Administrator that one time).
-
----
-
 ## Updating
-
-**macOS / Linux:**
 
 ```bash
 sudo auth-vpn update
 ```
 
-**Windows** (PowerShell as Administrator):
-
-```powershell
-auth-vpn update
-```
-
-Or re-run the installer to get the latest version fresh:
-
-```powershell
-irm https://github.com/adishM98/auth-vpn/releases/latest/download/install.ps1 | iex
-```
-
-The update command checks the latest GitHub release, downloads the right binary (and `wintun.dll` on Windows), atomically replaces the running files, and restarts the systemd service if active (Linux only). No config files are touched. On Windows, reconnect the tunnel after updating to pick up the new binary.
+The update command checks the latest GitHub release, downloads the right binary, atomically replaces the running file, and restarts the systemd service if active (Linux only). No config files are touched.
 
 Re-running the installer on an already-configured server is also safe — preserves `server.yaml`, skips TLS cert regeneration, keeps all tokens.
 
@@ -468,16 +394,6 @@ auth-vpn version   # check current version
 auth-vpn disconnect
 sudo rm /usr/local/bin/auth-vpn
 rm -rf ~/.auth-vpn
-```
-
-### Client — Windows (PowerShell as Administrator)
-
-```powershell
-auth-vpn disconnect
-Remove-Item "$env:ProgramFiles\auth-vpn" -Recurse -Force
-# Remove from PATH (if you want to clean up)
-$p = [Environment]::GetEnvironmentVariable("PATH","Machine")
-[Environment]::SetEnvironmentVariable("PATH", ($p -replace ";?$env:ProgramFiles\\auth-vpn",""), "Machine")
 ```
 
 ### Server
