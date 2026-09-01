@@ -25,13 +25,9 @@ You need two things from your infra/admin team:
 
 ## Step 1 — Install
 
-**macOS / Linux:**
 ```bash
 curl -fsSL https://github.com/adishM98/auth-vpn/releases/latest/download/install.sh | sudo bash
 ```
-
-**Windows:**
-Download `auth-vpn-windows-amd64.exe` from the [latest release](https://github.com/adishM98/auth-vpn/releases/latest), rename it to `auth-vpn.exe`, and add it to your `PATH`.
 
 ---
 

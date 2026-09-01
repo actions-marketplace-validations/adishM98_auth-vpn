@@ -136,18 +136,12 @@ Azure Portal → VM → Networking → Inbound port rules
 
 ---
 
-## Part 2 — Dev / QA laptops (macOS / Linux / Windows)
-
-### Option A — Single curl command (macOS / Linux)
+## Part 2 — Dev / QA laptops (macOS / Linux)
 
 ```bash
 curl -fsSL https://github.com/adishM98/auth-vpn/releases/latest/download/install.sh \
   | sudo bash
 ```
-
-### Option B — Windows
-
-Download `auth-vpn-windows-amd64.exe` from the [latest release](https://github.com/adishM98/auth-vpn/releases/latest), rename it to `auth-vpn.exe`, and add it to your `PATH`.
 
 ### Connect to the server
 
@@ -527,8 +521,7 @@ After `make release`, the curl one-liners above automatically pick up the new ve
 | `make build-linux` | Build Linux amd64 binary → `dist/` |
 | `make build-mac-arm` | Build macOS arm64 binary → `dist/` |
 | `make build-mac-intel` | Build macOS amd64 binary → `dist/` |
-| `make build-windows` | Build Windows amd64 `.exe` → `dist/` |
-| `make build-all` | Build all four platforms |
+| `make build-all` | Build all three platforms |
 | `make install` | Build + install on this machine (client) |
 | `make install-server` | Build + install + configure server on this machine |
 | `make deploy VM=user@host` | Build + deploy + configure **server** on remote VM |

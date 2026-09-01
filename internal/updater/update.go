@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -58,26 +57,8 @@ func binaryName() (string, error) {
 		return "auth-vpn-darwin-arm64", nil
 	case os_ == "darwin" && arch == "amd64":
 		return "auth-vpn-darwin-amd64", nil
-	case os_ == "windows" && arch == "amd64":
-		return "auth-vpn-windows-amd64.exe", nil
 	default:
 		return "", fmt.Errorf("no pre-built binary for %s/%s — build from source", os_, arch)
-	}
-}
-
-// wintunDLLName returns the wintun.dll release asset name for the current
-// Windows arch, or "" on non-Windows platforms.
-func wintunDLLName() string {
-	if runtime.GOOS != "windows" {
-		return ""
-	}
-	switch runtime.GOARCH {
-	case "amd64":
-		return "wintun-amd64.dll"
-	case "arm64":
-		return "wintun-arm64.dll"
-	default:
-		return ""
 	}
 }
 
@@ -125,53 +106,14 @@ func Run(currentVersion string) error {
 	}
 
 	// Atomic replace.
-	// On Windows the running exe can't be overwritten, but it CAN be renamed
-	// (Windows holds FILE_SHARE_DELETE on the open handle). We move the old
-	// binary aside first, place the new one, and clean up next time.
-	if runtime.GOOS == "windows" {
-		oldPath := exePath + ".old"
-		os.Remove(oldPath) //nolint:errcheck
-		if err := os.Rename(exePath, oldPath); err != nil {
-			os.Remove(tmpPath) //nolint:errcheck
-			return fmt.Errorf("replace binary (try running as Administrator): %w", err)
-		}
-		if err := os.Rename(tmpPath, exePath); err != nil {
-			os.Rename(oldPath, exePath) //nolint:errcheck // best-effort restore
-			return fmt.Errorf("replace binary: %w", err)
-		}
-	} else {
-		if err := os.Rename(tmpPath, exePath); err != nil {
-			os.Remove(tmpPath) //nolint:errcheck
-			return fmt.Errorf("replace binary (try with sudo): %w", err)
-		}
-	}
-
-	// Windows: also update wintun.dll next to the binary.
-	if dll := wintunDLLName(); dll != "" {
-		dllDest := filepath.Join(filepath.Dir(exePath), "wintun.dll")
-		dllTmp := dllDest + ".new"
-		dllURL := fmt.Sprintf("%s/%s/%s", baseURL, latest, dll)
-		if err := downloadFile(dllURL, dllTmp); err != nil {
-			fmt.Printf("warning: could not download wintun.dll: %v\n", err)
-		} else {
-			// Same rename trick: loaded DLLs allow rename but not deletion.
-			oldDLL := dllDest + ".old"
-			os.Remove(oldDLL)                    //nolint:errcheck
-			os.Rename(dllDest, oldDLL)           //nolint:errcheck
-			if err := os.Rename(dllTmp, dllDest); err != nil {
-				fmt.Printf("warning: could not replace wintun.dll: %v\n", err)
-			}
-		}
+	if err := os.Rename(tmpPath, exePath); err != nil {
+		os.Remove(tmpPath) //nolint:errcheck
+		return fmt.Errorf("replace binary (try with sudo): %w", err)
 	}
 
 	restartService()
 
-	if runtime.GOOS == "windows" {
-		fmt.Printf("updated to %s ✓\n", latest)
-		fmt.Println("  Reconnect the tunnel to use the new version.")
-	} else {
-		fmt.Printf("updated to %s ✓\n", latest)
-	}
+	fmt.Printf("updated to %s ✓\n", latest)
 	return nil
 }
 

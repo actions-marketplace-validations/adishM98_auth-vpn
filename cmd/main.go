@@ -55,7 +55,37 @@ func serverCmd() *cobra.Command {
 		Use:   "server",
 		Short: "Manage the auth-vpn server",
 	}
-	cmd.AddCommand(serverInstallCmd(), serverStartCmd(), serverTokensCmd(), serverClientsCmd(), serverChangePortCmd())
+	cmd.AddCommand(serverInstallCmd(), serverStartCmd(), serverTokensCmd(), serverClientsCmd(), serverChangePortCmd(), serverUIDevCmd())
+	return cmd
+}
+
+func serverUIDevCmd() *cobra.Command {
+	var addr, tokensPath string
+	cmd := &cobra.Command{
+		Use:   "ui-dev",
+		Short: "Run only the dashboard (no TUN, no root, no TLS) — for reviewing the web UI locally",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if tokensPath == "" {
+				tokensPath = "./auth-vpn-dev-tokens.yaml"
+			}
+			cfg := &server.Config{
+				Port:        7777, // cosmetic only — shown in the onboarding connect command; UIOnly mode never binds it
+				MetricsAddr: addr,
+				TokensPath:  tokensPath,
+				UIOnly:      true,
+			}
+			srv, err := server.New(cfg)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Dashboard:  http://%s/ui\n", addr)
+			fmt.Println("No TUN, no root, no TLS. Tokens/whitelist/forwards/SSH keys are live and backed by local files —")
+			fmt.Println("use the dashboard forms to populate them. The Clients tab stays empty (no real tunnel). Ctrl+C to stop.")
+			return srv.Start()
+		},
+	}
+	cmd.Flags().StringVar(&addr, "addr", "localhost:9100", "Address to serve the dashboard on")
+	cmd.Flags().StringVar(&tokensPath, "tokens-path", "", "Local file to store tokens (default: ./auth-vpn-dev-tokens.yaml)")
 	return cmd
 }
 

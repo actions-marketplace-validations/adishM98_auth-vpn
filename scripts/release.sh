@@ -98,28 +98,50 @@ git push origin "$NEW_TAG"
 echo ""
 green "✓ Tagged and pushed $NEW_TAG"
 echo ""
-bold "Next steps:"
+
+# ── build + publish via gh CLI ────────────────────────────────────────────────
+
+if ! command -v gh >/dev/null 2>&1; then
+  red "gh CLI not found (https://cli.github.com) — tag is pushed, but the release wasn't published."
+  echo "Once gh is installed and authenticated (gh auth login), run:"
+  echo ""
+  echo "       make release VERSION=$NEW_VERSION"
+  echo ""
+  exit 1
+fi
+
+if ! gh auth status >/dev/null 2>&1; then
+  red "gh CLI isn't authenticated — tag is pushed, but the release wasn't published."
+  echo "Run 'gh auth login', then:"
+  echo ""
+  echo "       make release VERSION=$NEW_VERSION"
+  echo ""
+  exit 1
+fi
+
+echo "This will build all platform binaries and publish the GitHub release"
+echo "for $NEW_TAG with gh, attaching:"
+echo "  auth-vpn-linux-amd64, auth-vpn-darwin-amd64, auth-vpn-darwin-arm64, install.sh"
 echo ""
-echo "  1. Build all binaries and fetch wintun.dll:"
+read -rp "Build and publish now? [y/N]: " PUBLISH
+if [[ "$(echo "$PUBLISH" | tr '[:upper:]' '[:lower:]')" != "y" ]]; then
+  echo ""
+  echo "Tag pushed, release not published. Run this when ready:"
+  echo ""
+  echo "       make release VERSION=$NEW_VERSION"
+  echo ""
+  exit 0
+fi
+
 echo ""
-echo "       make build-all"
+bold "Building all platforms and publishing release..."
 echo ""
-echo "  2. Go to GitHub and create the release:"
+make release VERSION="$NEW_VERSION"
+
+bold "Cleaning up build artifacts..."
+make clean
+
 echo ""
-echo "       https://github.com/adishM98/auth-vpn/releases/new?tag=$NEW_TAG"
-echo ""
-echo "  3. Upload these files (from dist/ unless noted):"
-echo "       - auth-vpn-linux-amd64"
-echo "       - auth-vpn-darwin-amd64"
-echo "       - auth-vpn-darwin-arm64"
-echo "       - auth-vpn-windows-amd64.exe"
-echo "       - wintun-amd64.dll"
-echo "       - install.sh          (repo root)"
-echo "       - install.ps1         (repo root)"
-echo ""
-echo "  4. Click Publish release."
-echo ""
-echo "  5. Clean up build artifacts:"
-echo ""
-echo "       make clean"
+green "✓ Released $NEW_TAG"
+echo "  GitHub → https://github.com/adishM98/auth-vpn/releases/tag/$NEW_TAG"
 echo ""
